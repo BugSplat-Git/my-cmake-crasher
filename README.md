@@ -59,7 +59,7 @@ export PATH="$PATH:/path/to/depot_tools"
 
 ```powershell
 # For Windows - add to system environment variables or use:
-$env:Path += ";C:\path\to\depot_tools"
+$env:Path = "C:\path\to\depot_tools;$env:Path"
 ```
 
 3. For Windows, you also need to run:
