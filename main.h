@@ -5,6 +5,7 @@
 
 // BugSplat Configuration
 // Replace BUGSPLAT_DATABASE with your database name from your BugSplat dashboard
+// #define BUGSPLAT_DATABASE "fred"
 #ifndef BUGSPLAT_DATABASE
 #error "BUGSPLAT_DATABASE must be defined. Please set it to your database name from your BugSplat dashboard."
 #endif
