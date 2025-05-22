@@ -40,7 +40,6 @@ This project demonstrates how to:
    ```cpp
    #define BUGSPLAT_DATABASE "your-database-name"  // Replace with your database name from BugSplat
    ```
-   The database name can be found in your BugSplat dashboard URL: `https://app.bugsplat.com/v2/database/{database-name}`
 
 ### Installing depot_tools
 
