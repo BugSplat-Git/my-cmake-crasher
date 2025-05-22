@@ -36,9 +36,9 @@ if [ ! -f "$MAIN_H" ]; then
 fi
 
 # Extract values from main.h - macOS compatible using sed
-DATABASE=$(grep "BUGSPLAT_DATABASE" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
-APP_NAME=$(grep "BUGSPLAT_APP_NAME" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
-APP_VERSION=$(grep "BUGSPLAT_APP_VERSION" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
+DATABASE=$(grep "^#define BUGSPLAT_DATABASE" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
+APP_NAME=$(grep "^#define BUGSPLAT_APP_NAME" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
+APP_VERSION=$(grep "^#define BUGSPLAT_APP_VERSION" "$MAIN_H" | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$DATABASE" ] || [ -z "$APP_NAME" ] || [ -z "$APP_VERSION" ]; then
     echo "Error: Could not extract all required values from main.h."

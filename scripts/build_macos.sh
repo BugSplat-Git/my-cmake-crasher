@@ -31,13 +31,21 @@ echo "Configuring with Debug symbols for better crash reporting..."
 cmake .. -DCMAKE_BUILD_TYPE=Debug
 make
 
-echo "Build complete. Run the application with: ./MyCMakeCrasher"
+echo "Build complete. Run the application with: ./Debug/MyCMakeCrasher"
 
-# Verify dSYM bundles were created
-if [ ! -d "MyCMakeCrasher.dSYM" ] || [ ! -d "libcrash.dylib.dSYM" ]; then
+# Verify dSYM bundles were created in the Debug directory
+if [ ! -d "Debug/MyCMakeCrasher.dSYM" ] || [ ! -d "Debug/libcrash.dylib.dSYM" ]; then
     echo "Warning: dSYM bundles not found. Attempting to generate them..."
-    dsymutil ./MyCMakeCrasher
-    dsymutil ./libcrash.dylib
+    if [ -f "Debug/MyCMakeCrasher" ]; then
+        dsymutil Debug/MyCMakeCrasher
+    else
+        echo "Error: MyCMakeCrasher executable not found in Debug directory"
+    fi
+    if [ -f "Debug/libcrash.dylib" ]; then
+        dsymutil Debug/libcrash.dylib
+    else
+        echo "Error: libcrash.dylib not found in Debug directory"
+    fi
 fi
 
 # Return to root directory

@@ -35,7 +35,6 @@ if (-not (Test-Path $symbolUploader)) {
 }
 
 Write-Host "Uploading symbols from $symbolsDir"
-Write-Host "Command: $symbolUploader -b $database -a $appName -v $version -d $symbolsDir -f '**/*.pdb' -i $clientId -s $clientSecret -m"
 
 & $symbolUploader -b $database -a $appName -v $version -d $symbolsDir -f "**/*.pdb" -i $clientId -s $clientSecret -m
 

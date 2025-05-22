@@ -8,6 +8,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set output directories to mimic multi-config generators for single-config generators
+# This ensures Linux and macOS builds create Debug/Release folders like Windows
+get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT IS_MULTICONFIG)
+    # For single-config generators, set the output directories to include config name
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+    endif()
+    
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+endif()
+
 # Ensure debug symbols are generated
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # Debug symbol flags for all platforms
@@ -136,16 +150,23 @@ else()
     target_link_libraries(MyCMakeCrasher ${CRASHPAD_LIBRARIES})
 endif()
 
+# Set the output config directory variable
+if(IS_MULTICONFIG)
+    set(OUTPUT_CONFIG_DIR $<CONFIG>)
+else()
+    set(OUTPUT_CONFIG_DIR ${CMAKE_BUILD_TYPE})
+endif()
+
 # Copy crashpad_handler to the build directory
 add_custom_command(TARGET MyCMakeCrasher POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CRASHPAD_HANDLER}
-    ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX}
+    ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX}
 )
 
 # Create attachment.txt in the build directory
 add_custom_command(TARGET MyCMakeCrasher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "BugSplat rocks!" > ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/attachment.txt
+    COMMAND ${CMAKE_COMMAND} -E echo "BugSplat rocks!" > ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/attachment.txt
 )
 
 # Copy the crash library to the build directory
@@ -153,19 +174,19 @@ if(WIN32)
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/$<TARGET_FILE_NAME:crash>
+        ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/$<TARGET_FILE_NAME:crash>
     )
 elseif(APPLE)
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/libcrash.dylib
+        ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/libcrash.dylib
     )
 else() # Linux
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/libcrash.so.2
+        ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/libcrash.so.2
     )
 endif()
 
@@ -185,8 +206,8 @@ endif()
 # Install targets
 install(TARGETS MyCMakeCrasher DESTINATION bin)
 install(TARGETS crash DESTINATION bin)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX} DESTINATION bin)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/attachment.txt DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX} DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_CONFIG_DIR}/attachment.txt DESTINATION bin)
 
 # Symbol upload target - updated to use platform-specific scripts
 if(WIN32)

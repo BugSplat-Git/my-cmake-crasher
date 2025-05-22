@@ -31,7 +31,6 @@ fi
 
 # Upload symbols using glob pattern
 echo "Uploading symbols from ${symbolsDir}"
-echo "Command: ${symbolUploader} -b ${database} -a \"${appName}\" -v \"${version}\" -d \"${symbolsDir}\" -f \"**/*.dSYM\" -i \"${clientId}\" -s \"${clientSecret}\" -m"
 
 "${symbolUploader}" -b "${database}" -a "${appName}" -v "${version}" -d "${symbolsDir}" -f "**/*.dSYM" -i "${clientId}" -s "${clientSecret}" -m
 
