@@ -72,7 +72,9 @@ gclient
 
 ### Symbol Uploads
 
-Symbol uploads must be configured so that crash reports contain function names, file names, and line numbers. The symbol upload process uses BugSplat's [symbol-upload](https://github.com/BugSplat-Git/symbol-upload) utility, which is automatically downloaded as needed. On Windows, symbol-upload-windows.exe will search for `.pdb` files, on macOS  symbol-upload-macos will search for `.dSYM` files, and on Linux, symbol-upload-linux will search for `.debug` files. All files are automatically converted to Crashpad/Breakpad compatible `.sym` files before uploading.
+Symbol uploads must be configured so that crash reports contain function names, file names, and line numbers. The symbol upload process uses BugSplat's [symbol-upload](https://github.com/BugSplat-Git/symbol-upload) utility, which is automatically downloaded as needed.
+
+On Windows, symbol-upload-windows.exe will search for `.pdb` files, on macOS symbol-upload-macos will search for `.dSYM` files, and on Linux, symbol-upload-linux will search for `.debug` files. All files are automatically converted to Crashpad/Breakpad compatible `.sym` files before uploading.
 
 To configure symbol upload, ensure you have:
 
