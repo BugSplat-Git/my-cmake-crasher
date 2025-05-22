@@ -61,14 +61,19 @@ bool initializeCrashpad(std::string dbName, std::string appName, std::string app
 
     // Ensure that crashpad_handler is shipped with your application
 #ifdef _WIN32
-    base::FilePath handler(exeDir + "/crashpad_handler.exe");
+    base::FilePath handler(base::FilePath::StringType(exeDir.begin(), exeDir.end()) + L"/crashpad_handler.exe");
 #else
     base::FilePath handler(exeDir + "/crashpad_handler");
 #endif
 
     // Directory where reports and metrics will be saved
+#ifdef _WIN32
+    base::FilePath reportsDir(base::FilePath::StringType(exeDir.begin(), exeDir.end()));
+    base::FilePath metricsDir(base::FilePath::StringType(exeDir.begin(), exeDir.end()));
+#else
     base::FilePath reportsDir(exeDir);
     base::FilePath metricsDir(exeDir);
+#endif
 
     // Configure url with your BugSplat database
     std::string url = "https://" + dbName + ".bugsplat.com/post/bp/crash/crashpad.php";
@@ -89,7 +94,11 @@ bool initializeCrashpad(std::string dbName, std::string appName, std::string app
 
     // File paths of attachments to be uploaded with the minidump file at crash time
     std::vector<base::FilePath> attachments;
+#ifdef _WIN32
+    base::FilePath attachment(base::FilePath::StringType(exeDir.begin(), exeDir.end()) + L"/attachment.txt");
+#else
     base::FilePath attachment(exeDir + "/attachment.txt");
+#endif
     attachments.push_back(attachment);
 
     // Initialize Crashpad database

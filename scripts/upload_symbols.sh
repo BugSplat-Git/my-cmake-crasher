@@ -20,10 +20,11 @@ if [ -z "$BUGSPLAT_CLIENT_ID" ] || [ -z "$BUGSPLAT_CLIENT_SECRET" ]; then
     exit 1
 fi
 
-# Determine build directory
+# Determine build directory and ensure we're looking in the Debug subdirectory
 BUILD_DIR="${ROOT_DIR}/build"
-if [ ! -d "$BUILD_DIR" ]; then
-    echo "Error: Build directory not found. Please build the project first."
+DEBUG_DIR="${BUILD_DIR}/Debug"
+if [ ! -d "$DEBUG_DIR" ]; then
+    echo "Error: Debug directory not found. Please build the project in Debug configuration first."
     exit 1
 fi
 
@@ -62,7 +63,7 @@ fi
 
 # Execute the platform-specific script
 echo "Running symbol upload script: $UPLOAD_SCRIPT"
-"$UPLOAD_SCRIPT" "$DATABASE" "$APP_NAME" "$APP_VERSION" "$BUILD_DIR" "$BUGSPLAT_CLIENT_ID" "$BUGSPLAT_CLIENT_SECRET"
+"$UPLOAD_SCRIPT" "$DATABASE" "$APP_NAME" "$APP_VERSION" "$DEBUG_DIR" "$BUGSPLAT_CLIENT_ID" "$BUGSPLAT_CLIENT_SECRET"
 
 # Check result
 if [ $? -eq 0 ]; then

@@ -30,10 +30,11 @@ if (-not $env:BUGSPLAT_CLIENT_SECRET) {
     exit 1
 }
 
-# Determine build directory
+# Determine build directory and ensure we're looking in the Debug subdirectory
 $buildDir = Join-Path $rootDir "build"
-if (-not (Test-Path $buildDir)) {
-    Write-Error "Error: Build directory not found. Please build the project first."
+$debugDir = Join-Path $buildDir "Debug"
+if (-not (Test-Path $debugDir)) {
+    Write-Error "Error: Debug directory not found. Please build the project in Debug configuration first."
     exit 1
 }
 
@@ -46,9 +47,9 @@ if (-not (Test-Path $mainH)) {
 
 # Extract values from main.h
 $mainContent = Get-Content $mainH
-$database = $mainContent | Select-String 'BUGSPLAT_DATABASE' | Select-String -Pattern '"([^"]+)"' -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value }
-$appName = $mainContent | Select-String 'BUGSPLAT_APP_NAME' | Select-String -Pattern '"([^"]+)"' -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value }
-$appVersion = $mainContent | Select-String 'BUGSPLAT_APP_VERSION' | Select-String -Pattern '"([^"]+)"' -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value }
+$database = ($mainContent | Select-String '#define BUGSPLAT_DATABASE' | ForEach-Object { if ($_.Line -match '"([^"]+)"') { $matches[1] } })
+$appName = ($mainContent | Select-String '#define BUGSPLAT_APP_NAME' | ForEach-Object { if ($_.Line -match '"([^"]+)"') { $matches[1] } })
+$appVersion = ($mainContent | Select-String '#define BUGSPLAT_APP_VERSION' | ForEach-Object { if ($_.Line -match '"([^"]+)"') { $matches[1] } })
 
 if (-not $database) {
     Write-Error "Error: Could not extract BUGSPLAT_DATABASE from main.h."
@@ -70,7 +71,7 @@ Write-Host "Version: $appVersion"
 # Execute the PowerShell script for Windows symbol upload
 Write-Host "Running Windows symbol upload script..."
 $symbolUploadScript = Join-Path $scriptDir "symbol_upload_windows.ps1"
-& $symbolUploadScript -database $database -appName $appName -version $appVersion -symbolsDir $buildDir -clientId $env:BUGSPLAT_CLIENT_ID -clientSecret $env:BUGSPLAT_CLIENT_SECRET
+& $symbolUploadScript -database $database -appName $appName -version $appVersion -symbolsDir $debugDir -clientId $env:BUGSPLAT_CLIENT_ID -clientSecret $env:BUGSPLAT_CLIENT_SECRET
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Symbol upload failed. Please check your credentials and network connection."

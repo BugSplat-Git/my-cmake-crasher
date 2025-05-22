@@ -19,7 +19,7 @@ if (-not (Test-Path "crashpad")) {
 
 # Generate build files with GN
 Write-Host "Generating build files with GN..."
-gn gen out/win --args="is_debug=false use_custom_libcxx=false"
+gn gen out/win --args="extra_cflags=\`"/MDd\`" is_debug=true" 
 
 # Build
 Write-Host "Building with Ninja..."

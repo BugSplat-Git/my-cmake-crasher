@@ -11,7 +11,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Ensure debug symbols are generated
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # Debug symbol flags for all platforms
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+  if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+  endif()
   
   # Platform-specific debug symbol settings
   if(MSVC)
@@ -45,14 +47,6 @@ else()
   set(BUGSPLAT_CLIENT_SECRET "" CACHE STRING "BugSplat client secret")
 endif()
 
-# Print configuration status for clarity
-message(STATUS "Building ${BUGSPLAT_APP_NAME} version ${BUGSPLAT_APP_VERSION} for database ${BUGSPLAT_DATABASE}")
-if(BUGSPLAT_CLIENT_ID AND BUGSPLAT_CLIENT_SECRET)
-  message(STATUS "BugSplat credentials found - symbol upload available")
-else()
-  message(STATUS "BugSplat credentials not found - symbol upload will be disabled")
-endif()
-
 # Set Crashpad paths
 set(CRASHPAD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/third_party/crashpad)
 
@@ -75,7 +69,7 @@ include_directories(
 if(WIN32)
     set(CRASHPAD_LIBRARIES
         ${CRASHPAD_OUT_DIR}/obj/client/client.lib
-        ${CRASHPAD_OUT_DIR}/obj/client/libcommon.lib
+        ${CRASHPAD_OUT_DIR}/obj/client/common.lib
         ${CRASHPAD_OUT_DIR}/obj/util/util.lib
         ${CRASHPAD_OUT_DIR}/obj/third_party/mini_chromium/mini_chromium/base/base.lib
     )
@@ -146,12 +140,12 @@ endif()
 add_custom_command(TARGET MyCMakeCrasher POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     ${CRASHPAD_HANDLER}
-    ${CMAKE_CURRENT_BINARY_DIR}/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX}
+    ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX}
 )
 
 # Create attachment.txt in the build directory
 add_custom_command(TARGET MyCMakeCrasher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E echo "BugSplat rocks!" > ${CMAKE_CURRENT_BINARY_DIR}/attachment.txt
+    COMMAND ${CMAKE_COMMAND} -E echo "BugSplat rocks!" > ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/attachment.txt
 )
 
 # Copy the crash library to the build directory
@@ -159,19 +153,19 @@ if(WIN32)
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/$<TARGET_FILE_NAME:crash>
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/$<TARGET_FILE_NAME:crash>
     )
 elseif(APPLE)
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/libcrash.dylib
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/libcrash.dylib
     )
 else() # Linux
     add_custom_command(TARGET crash POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:crash>
-        ${CMAKE_CURRENT_BINARY_DIR}/libcrash.so.2
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/libcrash.so.2
     )
 endif()
 
@@ -191,29 +185,27 @@ endif()
 # Install targets
 install(TARGETS MyCMakeCrasher DESTINATION bin)
 install(TARGETS crash DESTINATION bin)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX} DESTINATION bin)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/attachment.txt DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/crashpad_handler${CMAKE_EXECUTABLE_SUFFIX} DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/attachment.txt DESTINATION bin)
 
 # Symbol upload target - updated to use platform-specific scripts
-if(BUGSPLAT_CLIENT_ID AND BUGSPLAT_CLIENT_SECRET)
-  if(WIN32)
-    add_custom_target(upload_symbols
-      COMMAND powershell -ExecutionPolicy Bypass -File 
-              ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.ps1
-      DEPENDS MyCMakeCrasher
-      COMMENT "Uploading symbols to BugSplat"
-    )
-  elseif(APPLE)
-    add_custom_target(upload_symbols
-      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.sh
-      DEPENDS MyCMakeCrasher
-      COMMENT "Uploading symbols to BugSplat"
-    )
-  else() # Linux
-    add_custom_target(upload_symbols
-      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.sh
-      DEPENDS MyCMakeCrasher
-      COMMENT "Uploading symbols to BugSplat"
-    )
-  endif()
+if(WIN32)
+  add_custom_target(upload_symbols ALL
+    COMMAND powershell -ExecutionPolicy Bypass -File 
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.ps1
+    DEPENDS MyCMakeCrasher crash
+    COMMENT "Uploading symbols to BugSplat"
+  )
+elseif(APPLE)
+  add_custom_target(upload_symbols ALL
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.sh
+    DEPENDS MyCMakeCrasher crash
+    COMMENT "Uploading symbols to BugSplat"
+  )
+else() # Linux
+  add_custom_target(upload_symbols ALL
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/upload_symbols.sh
+    DEPENDS MyCMakeCrasher crash
+    COMMENT "Uploading symbols to BugSplat"
+  )
 endif() 

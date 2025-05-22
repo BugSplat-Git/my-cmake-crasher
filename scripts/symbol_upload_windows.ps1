@@ -7,7 +7,7 @@ param(
     [Parameter(Mandatory=$true)][string]$clientSecret
 )
 
-$rootPath = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$rootPath = Split-Path -Parent $PSScriptRoot
 $toolsDir = Join-Path $rootPath "tools\windows"
 $symbolUploader = Join-Path $toolsDir "symbol-upload-windows.exe"
 
