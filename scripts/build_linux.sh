@@ -25,26 +25,5 @@ make
 
 echo "Build complete. Run the application with: ./Debug/MyCMakeCrasher"
 
-# Extract debug symbols to separate .debug files for better symbol handling
-echo "Extracting debug symbols..."
-
-# Extract symbols for main executable
-if [ -f "Debug/MyCMakeCrasher" ]; then
-    objcopy --only-keep-debug Debug/MyCMakeCrasher Debug/MyCMakeCrasher.debug
-    objcopy --strip-debug Debug/MyCMakeCrasher
-    objcopy --add-gnu-debuglink=Debug/MyCMakeCrasher.debug Debug/MyCMakeCrasher
-    echo "Debug symbols extracted: Debug/MyCMakeCrasher.debug"
-fi
-
-# Extract symbols for crash library
-if [ -f "Debug/libcrash.so.2" ]; then
-    objcopy --only-keep-debug Debug/libcrash.so.2 Debug/libcrash.so.2.debug
-    objcopy --strip-debug Debug/libcrash.so.2
-    objcopy --add-gnu-debuglink=Debug/libcrash.so.2.debug Debug/libcrash.so.2
-    echo "Debug symbols extracted: Debug/libcrash.so.2.debug"
-fi
-
-echo "Symbol extraction complete."
-
 # Return to root directory
 cd .. 

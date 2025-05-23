@@ -190,17 +190,35 @@ else() # Linux
     )
 endif()
 
-# Add dsymutil post-build step for macOS
-if(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_custom_command(TARGET MyCMakeCrasher POST_BUILD
-    COMMAND dsymutil $<TARGET_FILE:MyCMakeCrasher>
-    COMMENT "Generating dSYM bundle for MyCMakeCrasher"
-  )
-  
-  add_custom_command(TARGET crash POST_BUILD
-    COMMAND dsymutil $<TARGET_FILE:crash>
-    COMMENT "Generating dSYM bundle for crash library"
-  )
+# Add platform-specific debug symbol extraction for Debug builds
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(APPLE)
+    # Add dsymutil post-build step for macOS
+    add_custom_command(TARGET MyCMakeCrasher POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:MyCMakeCrasher>
+      COMMENT "Generating dSYM bundle for MyCMakeCrasher"
+    )
+    
+    add_custom_command(TARGET crash POST_BUILD
+      COMMAND dsymutil $<TARGET_FILE:crash>
+      COMMENT "Generating dSYM bundle for crash library"
+    )
+  elseif(UNIX AND NOT APPLE)
+    # Add objcopy debug symbol extraction for Linux
+    add_custom_command(TARGET MyCMakeCrasher POST_BUILD
+      COMMAND objcopy --only-keep-debug $<TARGET_FILE:MyCMakeCrasher> $<TARGET_FILE:MyCMakeCrasher>.debug
+      COMMAND objcopy --strip-debug $<TARGET_FILE:MyCMakeCrasher>
+      COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:MyCMakeCrasher>.debug $<TARGET_FILE:MyCMakeCrasher>
+      COMMENT "Extracting debug symbols for MyCMakeCrasher"
+    )
+    
+    add_custom_command(TARGET crash POST_BUILD
+      COMMAND objcopy --only-keep-debug $<TARGET_FILE:crash> $<TARGET_FILE:crash>.debug
+      COMMAND objcopy --strip-debug $<TARGET_FILE:crash>
+      COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:crash>.debug $<TARGET_FILE:crash>
+      COMMENT "Extracting debug symbols for crash library"
+    )
+  endif()
 endif()
 
 # Install targets
