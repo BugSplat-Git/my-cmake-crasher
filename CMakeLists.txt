@@ -66,11 +66,11 @@ set(CRASHPAD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/third_party/crashpad)
 
 # Set platform-specific build output directory for Crashpad
 if(WIN32)
-    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/win)
+    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/win-debug)
 elseif(APPLE)
-    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/macos)
+    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/macos-debug)
 elseif(UNIX)
-    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/linux)
+    set(CRASHPAD_OUT_DIR ${CRASHPAD_ROOT}/out/linux-debug)
 endif()
 
 # Add Crashpad include directories
