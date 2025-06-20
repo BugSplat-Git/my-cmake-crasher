@@ -17,15 +17,23 @@ if (-not (Test-Path "crashpad")) {
     gclient sync
 }
 
-# Generate build files with GN
-Write-Host "Generating build files with GN..."
-gn gen out/win --args="extra_cflags=\`"/MDd\`" is_debug=true" 
+# Generate build files with GN for Debug configuration
+Write-Host "Generating Debug build files with GN..."
+gn gen out/win-debug --args="extra_cflags=\`"/MDd\`" is_debug=true" 
 
-# Build
-Write-Host "Building with Ninja..."
-ninja -C out/win
+# Generate build files with GN for Release configuration
+Write-Host "Generating Release build files with GN..."
+gn gen out/win-release --args="extra_cflags=\`"/MD\`" is_debug=false" 
 
-Write-Host "Crashpad build complete."
+# Build Debug
+Write-Host "Building Debug with Ninja..."
+ninja -C out/win-debug
+
+# Build Release
+Write-Host "Building Release with Ninja..."
+ninja -C out/win-release
+
+Write-Host "Crashpad Debug and Release builds complete."
 
 # Return to the original directory
 Set-Location -Path "../../" 

@@ -18,12 +18,20 @@ else
   gclient sync
 fi
 
-# Generate build files with GN
-echo "Generating build files with GN..."
-gn gen out/linux --args="is_debug=false use_custom_libcxx=false"
+# Generate build files with GN for Debug configuration
+echo "Generating Debug build files with GN..."
+gn gen out/linux-debug --args="is_debug=true use_custom_libcxx=false"
 
-# Build
-echo "Building with Ninja..."
-ninja -C out/linux
+# Generate build files with GN for Release configuration
+echo "Generating Release build files with GN..."
+gn gen out/linux-release --args="is_debug=false use_custom_libcxx=false"
 
-echo "Crashpad build complete." 
+# Build Debug
+echo "Building Debug with Ninja..."
+ninja -C out/linux-debug
+
+# Build Release
+echo "Building Release with Ninja..."
+ninja -C out/linux-release
+
+echo "Crashpad Debug and Release builds complete." 

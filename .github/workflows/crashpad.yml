@@ -14,15 +14,15 @@ jobs:
           - os: windows-latest
             platform: windows
             script: scripts/build_crashpad_windows_msvc.ps1
-            artifact_path: third_party/crashpad/out/win
+            artifact_path: third_party/crashpad/out/win-debug
           - os: macos-latest
             platform: macos
             script: scripts/build_crashpad_macos.sh
-            artifact_path: third_party/crashpad/out/macos
+            artifact_path: third_party/crashpad/out/macos-debug
           - os: ubuntu-latest
             platform: linux
             script: scripts/build_crashpad_linux.sh
-            artifact_path: third_party/crashpad/out/linux
+            artifact_path: third_party/crashpad/out/linux-debug
 
     runs-on: ${{ matrix.os }}
     name: Build Crashpad on ${{ matrix.platform }}
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential
+          sudo apt-get install -y build-essential libcurl4-openssl-dev
 
       - name: Install build dependencies (macOS)
         if: ${{ matrix.platform == 'macos' }}
@@ -89,22 +89,94 @@ jobs:
       - name: Prepare artifacts
         shell: bash
         run: |
-          # Create a directory for artifacts
-          mkdir -p artifacts/${{ matrix.platform }}
+          # Create a directory for artifacts with debug and release subdirectories
+          mkdir -p artifacts/${{ matrix.platform }}/debug/lib
+          mkdir -p artifacts/${{ matrix.platform }}/debug/bin
+          mkdir -p artifacts/${{ matrix.platform }}/release/lib
+          mkdir -p artifacts/${{ matrix.platform }}/release/bin
+          mkdir -p artifacts/${{ matrix.platform }}/include/crashpad
+          mkdir -p artifacts/${{ matrix.platform }}/include/mini_chromium
 
-          # Copy built files to artifacts directory
-          if [ -d "${{ matrix.artifact_path }}" ]; then
-            cp -r ${{ matrix.artifact_path }}/* artifacts/${{ matrix.platform }}/
-          else
-            echo "Build output directory not found: ${{ matrix.artifact_path }}"
-            exit 1
+          # Set platform-specific paths
+          CRASHPAD_ROOT="third_party/crashpad"
+          
+          # Set debug and release output directories
+          if [ "${{ matrix.platform }}" == "windows" ]; then
+            DEBUG_OUT_DIR="third_party/crashpad/out/win-debug"
+            RELEASE_OUT_DIR="third_party/crashpad/out/win-release"
+          elif [ "${{ matrix.platform }}" == "macos" ]; then
+            DEBUG_OUT_DIR="third_party/crashpad/out/macos-debug"
+            RELEASE_OUT_DIR="third_party/crashpad/out/macos-release"
+          else # Linux
+            DEBUG_OUT_DIR="third_party/crashpad/out/linux-debug"
+            RELEASE_OUT_DIR="third_party/crashpad/out/linux-release"
           fi
+
+          # Copy platform-specific debug libraries and executables
+          if [ "${{ matrix.platform }}" == "windows" ]; then
+            # Windows debug libraries
+            cp "$DEBUG_OUT_DIR/obj/client/client.lib" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/client/common.lib" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/util/util.lib" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/base.lib" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/crashpad_handler.exe" artifacts/${{ matrix.platform }}/debug/bin/
+            # Windows release libraries
+            cp "$RELEASE_OUT_DIR/obj/client/client.lib" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/client/common.lib" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/util/util.lib" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/base.lib" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/crashpad_handler.exe" artifacts/${{ matrix.platform }}/release/bin/
+          elif [ "${{ matrix.platform }}" == "macos" ]; then
+            # macOS debug libraries
+            cp "$DEBUG_OUT_DIR/obj/client/libclient.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/client/libcommon.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/util/libutil.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/util/libmig_output.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/libbase.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/crashpad_handler" artifacts/${{ matrix.platform }}/debug/bin/
+            # macOS release libraries
+            cp "$RELEASE_OUT_DIR/obj/client/libclient.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/client/libcommon.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/util/libutil.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/util/libmig_output.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/libbase.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/crashpad_handler" artifacts/${{ matrix.platform }}/release/bin/
+          else # Linux
+            # Linux debug libraries
+            cp "$DEBUG_OUT_DIR/obj/client/libclient.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/client/libcommon.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/util/libutil.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/libbase.a" artifacts/${{ matrix.platform }}/debug/lib/
+            cp "$DEBUG_OUT_DIR/crashpad_handler" artifacts/${{ matrix.platform }}/debug/bin/
+            # Linux release libraries
+            cp "$RELEASE_OUT_DIR/obj/client/libclient.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/client/libcommon.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/util/libutil.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/obj/third_party/mini_chromium/mini_chromium/base/libbase.a" artifacts/${{ matrix.platform }}/release/lib/
+            cp "$RELEASE_OUT_DIR/crashpad_handler" artifacts/${{ matrix.platform }}/release/bin/
+          fi
+
+          # Copy include directories (shared between debug and release)
+          cp -r "$CRASHPAD_ROOT"/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
+          cp -r "$CRASHPAD_ROOT"/client/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
+          cp -r "$CRASHPAD_ROOT"/util/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
+          cp -r "$CRASHPAD_ROOT"/base/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
+          cp -r "$CRASHPAD_ROOT"/third_party/mini_chromium/mini_chromium"/* artifacts/${{ matrix.platform }}/include/mini_chromium/ 2>/dev/null || true
+
+          # Verify required files exist
+          echo "Verifying debug artifact files..."
+          ls -la artifacts/${{ matrix.platform }}/debug/lib/
+          ls -la artifacts/${{ matrix.platform }}/debug/bin/
+          echo "Verifying release artifact files..."
+          ls -la artifacts/${{ matrix.platform }}/release/lib/
+          ls -la artifacts/${{ matrix.platform }}/release/bin/
 
           # Create a build info file
           echo "Build Date: $(date)" > artifacts/${{ matrix.platform }}/build_info.txt
           echo "Platform: ${{ matrix.platform }}" >> artifacts/${{ matrix.platform }}/build_info.txt
           echo "OS: ${{ matrix.os }}" >> artifacts/${{ matrix.platform }}/build_info.txt
           echo "Commit: ${{ github.sha }}" >> artifacts/${{ matrix.platform }}/build_info.txt
+          echo "Configurations: Debug, Release" >> artifacts/${{ matrix.platform }}/build_info.txt
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
