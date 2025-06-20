@@ -161,7 +161,7 @@ jobs:
           cp -r "$CRASHPAD_ROOT"/client/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
           cp -r "$CRASHPAD_ROOT"/util/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
           cp -r "$CRASHPAD_ROOT"/base/*.h artifacts/${{ matrix.platform }}/include/crashpad/ 2>/dev/null || true
-          cp -r "$CRASHPAD_ROOT"/third_party/mini_chromium/mini_chromium"/* artifacts/${{ matrix.platform }}/include/mini_chromium/ 2>/dev/null || true
+          cp -r "$CRASHPAD_ROOT"/third_party/mini_chromium/mini_chromium/* artifacts/${{ matrix.platform }}/include/mini_chromium/ 2>/dev/null || true
 
           # Verify required files exist
           echo "Verifying debug artifact files..."
