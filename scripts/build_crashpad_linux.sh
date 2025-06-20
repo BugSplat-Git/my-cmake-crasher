@@ -20,11 +20,11 @@ fi
 
 # Generate build files with GN for Debug configuration
 echo "Generating Debug build files with GN..."
-gn gen out/linux-debug --args="is_debug=true use_custom_libcxx=false"
+gn gen out/linux-debug --args="is_debug=true"
 
 # Generate build files with GN for Release configuration
 echo "Generating Release build files with GN..."
-gn gen out/linux-release --args="is_debug=false use_custom_libcxx=false"
+gn gen out/linux-release --args="is_debug=false"
 
 # Build Debug
 echo "Building Debug with Ninja..."
