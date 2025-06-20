@@ -1,0 +1,160 @@
+name: Monthly Crashpad Build
+
+on:
+  schedule:
+    # Run on the 1st of every month at 2:00 AM UTC
+    - cron: "0 2 1 * *"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  build-crashpad:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            script: scripts/build_crashpad_windows_msvc.ps1
+            artifact_path: third_party/crashpad/out/win
+          - os: macos-latest
+            platform: macos
+            script: scripts/build_crashpad_macos.sh
+            artifact_path: third_party/crashpad/out/macos
+          - os: ubuntu-latest
+            platform: linux
+            script: scripts/build_crashpad_linux.sh
+            artifact_path: third_party/crashpad/out/linux
+
+    runs-on: ${{ matrix.os }}
+    name: Build Crashpad on ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install depot_tools (Windows)
+        if: ${{ matrix.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          # Download and set up depot_tools for Windows
+          Invoke-WebRequest -Uri "https://storage.googleapis.com/chrome-infra/depot_tools.zip" -OutFile "depot_tools.zip"
+          Expand-Archive -Path "depot_tools.zip" -DestinationPath "depot_tools"
+          $env:PATH = "$PWD\depot_tools;$env:PATH"
+          echo "$PWD\depot_tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          # Initialize depot_tools
+          gclient
+
+      - name: Install depot_tools (Unix)
+        if: ${{ matrix.platform != 'windows' }}
+        shell: bash
+        run: |
+          # Download and set up depot_tools for Unix systems
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "$PWD/depot_tools" >> $GITHUB_PATH
+          # Initialize depot_tools
+          gclient
+
+      - name: Install build dependencies (Linux)
+        if: ${{ matrix.platform == 'linux' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Install build dependencies (macOS)
+        if: ${{ matrix.platform == 'macos' }}
+        shell: bash
+        run: |
+          # Install Xcode command line tools if not already installed
+          xcode-select --install || true
+
+      - name: Run build script (Windows)
+        if: ${{ matrix.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          ${{ matrix.script }}
+
+      - name: Run build script (Unix)
+        if: ${{ matrix.platform != 'windows' }}
+        shell: bash
+        run: |
+          chmod +x ${{ matrix.script }}
+          ${{ matrix.script }}
+
+      - name: Prepare artifacts
+        shell: bash
+        run: |
+          # Create a directory for artifacts
+          mkdir -p artifacts/${{ matrix.platform }}
+
+          # Copy built files to artifacts directory
+          if [ -d "${{ matrix.artifact_path }}" ]; then
+            cp -r ${{ matrix.artifact_path }}/* artifacts/${{ matrix.platform }}/
+          else
+            echo "Build output directory not found: ${{ matrix.artifact_path }}"
+            exit 1
+          fi
+
+          # Create a build info file
+          echo "Build Date: $(date)" > artifacts/${{ matrix.platform }}/build_info.txt
+          echo "Platform: ${{ matrix.platform }}" >> artifacts/${{ matrix.platform }}/build_info.txt
+          echo "OS: ${{ matrix.os }}" >> artifacts/${{ matrix.platform }}/build_info.txt
+          echo "Commit: ${{ github.sha }}" >> artifacts/${{ matrix.platform }}/build_info.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashpad-${{ matrix.platform }}-${{ github.run_number }}
+          path: artifacts/${{ matrix.platform }}/
+          retention-days: 90
+
+  create-release:
+    needs: build-crashpad
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' }} # Only create release on scheduled runs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create release archives
+        run: |
+          cd release-artifacts
+          for dir in crashpad-*; do
+            platform=$(echo $dir | sed 's/crashpad-\(.*\)-[0-9]*/\1/')
+            tar -czf "../crashpad-${platform}-$(date +%Y%m%d).tar.gz" -C "$dir" .
+          done
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: monthly-build-${{ github.run_number }}
+          name: Monthly Crashpad Build - $(date +%Y-%m-%d)
+          body: |
+            Automated monthly build of Crashpad libraries for all supported platforms.
+
+            ## Platforms Included
+            - Windows (MSVC)
+            - macOS
+            - Linux
+
+            ## Build Information
+            - Build Date: $(date)
+            - Commit: ${{ github.sha }}
+            - Run Number: ${{ github.run_number }}
+          files: |
+            crashpad-*.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
