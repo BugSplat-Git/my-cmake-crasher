@@ -54,6 +54,7 @@ jobs:
         run: |
           # Download and set up depot_tools for Unix systems
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          export PATH="$PWD/depot_tools:$PATH"
           echo "$PWD/depot_tools" >> $GITHUB_PATH
           # Initialize depot_tools
           gclient
